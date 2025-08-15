@@ -1,0 +1,49 @@
+---
+apiVersion: k6.io/v1alpha1
+kind: TestRun
+metadata:
+  name: k6-testrun
+  namespace: k6-operator-system
+spec:
+  initializer:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: "k6-load"
+              operator: In
+              values:
+              - "true"
+    tolerations:
+    - key: "k6-load"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  runner:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: "k6-load"
+              operator: In
+              values:
+              - "true"
+    tolerations:
+    - key: "k6-load"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    resources:
+      requests:
+        memory: "25Gi"
+        cpu: "5"
+      limits:
+        memory: "25Gi"
+        cpu: "5"
+  parallelism: 15
+  script:
+    configMap:
+      name: k6-stress-test
+      file: k6.js
