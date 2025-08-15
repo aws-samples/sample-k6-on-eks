@@ -1,0 +1,162 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  namespace: nginx
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes  3;
+    error_log  /dev/stdout info;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      log_format json_combined escape=json '{'
+              'remote_addr:$remote_addr\t'
+              '"time_local":"$time_local",'
+              '"remote_addr":"$remote_addr",'
+              '"remote_user":"$remote_user",'
+              '"request":"$request",'
+              '"status": "$status",'
+              '"body_bytes_sent":"$body_bytes_sent",'
+              '"http_referrer":"$http_referer",'
+              '"http_user_agent":"$http_user_agent",'
+              '"request_time":"$request_time",'
+          '}';
+      log_format  main
+              'remote_addr:$remote_addr\t'
+              'time_local:$time_local\t'
+              'method:$request_method\t'
+              'uri:$request_uri\t'
+              'host:$host\t'
+              'status:$status\t'
+              'bytes_sent:$body_bytes_sent\t'
+              'referer:$http_referer\t'
+              'useragent:$http_user_agent\t'
+              'forwardedfor:$http_x_forwarded_for\t'
+              'request_time:$request_time'
+              'request_body:$request_body';
+      access_log	/dev/stdout json_combined;
+      server {
+          listen       80;
+          server_name  _;
+          location / {
+              root   html;
+              index  index.html index.htm;
+          }
+      }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Custom Nginx Page</title>
+    </head>
+    <body>
+      <h1>Hello from ConfigMap!</h1>
+    </body>
+    </html>
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: nginx
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {}
+      containers:
+      - name: nginx
+        image: nginx:1.29.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - mountPath: /etc/nginx
+          readOnly: true
+          name: nginx-conf
+        - mountPath: /var/log/nginx
+          name: log
+        - mountPath: /var/cache/nginx
+          name: cache
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /run
+          name: run
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - NET_RAW
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+          items:
+            - key: nginx.conf
+              path: nginx.conf
+            - key: index.html
+              path: html/index.html
+      - name: log
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    app: nginx
