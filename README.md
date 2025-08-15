@@ -25,9 +25,9 @@ Grafana K6 is an open source tool for performing load testing, smoke testing, an
 K6 includes an [Operator for Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) that supports distributing K6 testing [Pods](https://kubernetes.io/docs/concepts/workloads/pods/), launched via [Jobs](https://kubernetes.io/docs/concepts/workloads/controllers/job/), across a Kubernetes cluster to achieve large scale and support diverse connection patterns, such as cross-AZ connections, to produce more comprehensive results.
 
 ## Navigating the repository
-- Installation Instructions: [installation.md]()
-- Configuration Instructions: [configuration.md]()
-- Testing Instructions: [testing.md]()
+- [Installation Instructions: installation.md](installation.md)
+- [Configuration Instructions: configuration.md](configuration.md)
+- [Testing Instructions: testing.md](testing.md)
 
 ## Note on Security
 The Kubernetes manifest data provided in the repository is only for the purposes of example; for production workloads, it is important to always follow the [best practice guidelines](https://docs.aws.amazon.com/eks/latest/best-practices/security.html) in accordance with your organization policies and procedures.
